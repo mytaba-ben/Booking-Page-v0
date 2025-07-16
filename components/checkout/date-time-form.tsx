@@ -1,143 +1,119 @@
 "use client"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Clock } from "lucide-react"
 
 interface DateTimeFormProps {
-  data: {
-    startTime: string
+  formData: {
     date: string
+    startTime: string
+    endTime: string
   }
-  onNext: (data: any) => void
-  onBack: () => void
+  updateFormData: (field: string, value: string) => void
+  errors: Record<string, string>
 }
 
-export function DateTimeForm({ data, onNext, onBack }: DateTimeFormProps) {
-  const [formData, setFormData] = useState({
-    startTime: data.startTime || "7:00 PM",
-    date: data.date ? new Date(data.date) : null,
-  })
-  const [errors, setErrors] = useState({})
-
-  const timeOptions = ["5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"]
-
-  const handleTimeChange = (value) => {
-    setFormData({
-      ...formData,
-      startTime: value,
-    })
-  }
-
-  const handleDateChange = (date) => {
-    setFormData({
-      ...formData,
-      date,
-    })
-  }
-
-  const validate = () => {
-    const newErrors = {}
-    if (!formData.startTime) newErrors.startTime = "Start time is required"
-    if (!formData.date) newErrors.date = "Date is required"
-
-    // Check if date is at least 4 days in the future
-    const today = new Date()
-    const fourDaysFromNow = new Date(today)
-    fourDaysFromNow.setDate(today.getDate() + 4)
-
-    if (formData.date && formData.date < fourDaysFromNow) {
-      newErrors.date = "Please select a date at least 4 days from today"
+export function DateTimeForm({ formData, updateFormData, errors }: DateTimeFormProps) {
+  const generateTimeOptions = () => {
+    const times = []
+    for (let hour = 17; hour <= 23; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+        const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+        times.push({ value: timeString, label: displayTime })
+      }
     }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return times
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (validate()) {
-      onNext({
-        ...formData,
-        date: formData.date ? formData.date.toISOString() : "",
-      })
-    }
+  const calculateEndTime = (startTime: string) => {
+    if (!startTime) return ""
+
+    const [hours, minutes] = startTime.split(":").map(Number)
+    const startDate = new Date()
+    startDate.setHours(hours, minutes, 0, 0)
+
+    // Add 4 hours
+    const endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000)
+
+    return `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`
   }
 
-  // Calculate the minimum selectable date (4 days from now)
-  const today = new Date()
-  const minDate = new Date(today)
-  minDate.setDate(today.getDate() + 4)
+  const handleStartTimeChange = (value: string) => {
+    updateFormData("startTime", value)
+    const endTime = calculateEndTime(value)
+    updateFormData("endTime", endTime)
+  }
+
+  const timeOptions = generateTimeOptions()
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>What time do you want your Truvay Night Out to start?</Label>
-          <RadioGroup defaultValue={formData.startTime} onValueChange={handleTimeChange}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-              {timeOptions.map((time) => (
-                <div key={time} className="flex items-center justify-center">
-                  <RadioGroupItem value={time} id={`time-${time}`} className="sr-only" />
-                  <Label
-                    htmlFor={`time-${time}`}
-                    className={cn(
-                      "flex h-10 w-full items-center justify-center rounded-md border border-input text-sm",
-                      "hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                      formData.startTime === time && "bg-primary text-primary-foreground",
-                    )}
-                  >
-                    {time}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </RadioGroup>
-          {errors.startTime && <p className="text-sm text-red-500">{errors.startTime}</p>}
+    <Card className="border-2 border-gray-100 shadow-sm">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Clock className="h-5 w-5 text-truvay-magenta" />
+          Date & Time
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="date" className="text-sm font-medium">
+              What date would you like to go out? *
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => updateFormData("date", e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className={`${errors.date ? "border-red-500" : ""}`}
+            />
+            {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="startTime" className="text-sm font-medium">
+              What time do you want your Night Out to start? *
+            </Label>
+            <Select value={formData.startTime} onValueChange={handleStartTimeChange}>
+              <SelectTrigger className={`${errors.startTime ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select start time" />
+              </SelectTrigger>
+              <SelectContent>
+                {timeOptions.map((time) => (
+                  <SelectItem key={time.value} value={time.value}>
+                    {time.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.startTime && <p className="text-sm text-red-500">{errors.startTime}</p>}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>What date would you like for our Weekend Concierge to plan for you?</Label>
-          <p className="text-sm text-muted-foreground mb-2">
-            Every Truvay Night Out is meticulously planned, so we recommend you give us at least 4 days in advance.
-          </p>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn("w-full justify-start text-left font-normal", !formData.date && "text-muted-foreground")}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.date ? format(formData.date, "PPP") : "Select a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={formData.date}
-                onSelect={handleDateChange}
-                disabled={(date) => date < minDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
-        </div>
-      </div>
-
-      <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={onBack}>
-          Back
-        </Button>
-        <Button type="submit">Continue</Button>
-      </div>
-    </form>
+        {formData.startTime && formData.endTime && (
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Your night out will end around:</strong>{" "}
+              {new Date(`2000-01-01T${formData.endTime}`).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              This is an estimated end time based on a typical 4-hour experience
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

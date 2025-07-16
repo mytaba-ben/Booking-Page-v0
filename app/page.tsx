@@ -12,8 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { format } from "date-fns"
-import { CalendarIcon, Mountain, CheckCircle, Search } from "lucide-react"
+import { CalendarIcon, CheckCircle, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 export default function BookingPage() {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -50,6 +51,8 @@ export default function BookingPage() {
     cardName: "",
     expiry: "",
     cvc: "",
+
+    interestsOther: "",
   })
   const [errors, setErrors] = useState({})
 
@@ -490,25 +493,26 @@ export default function BookingPage() {
   // Payment Form
   if (showPaymentForm) {
     return (
-      <div className="min-h-screen bg-muted">
-        <header className="bg-background border-b">
-          <div className="container flex h-16 items-center justify-center">
-            <div className="flex items-center gap-2">
-              <Mountain className="h-5 w-5" />
-              <span className="text-lg font-bold">Truvay</span>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <header className="bg-white border-b shadow-sm">
+          <div className="container flex h-20 items-center justify-center">
+            <div className="flex items-center gap-3">
+              <Image src="/truvay-logo-black.png" alt="Truvay" width={120} height={40} className="h-8 w-auto" />
             </div>
           </div>
         </header>
 
         <div className="container py-8 md:py-12">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Complete Your Seattle Booking</h1>
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-truvay-yellow via-truvay-magenta to-truvay-purple bg-clip-text text-transparent">
+              Complete Your Seattle Booking
+            </h1>
             <p className="mt-2 text-muted-foreground">Enter your payment details to confirm your Seattle Night Out.</p>
           </div>
 
           {/* Add booking summary */}
           <div className="max-w-2xl mx-auto mb-6">
-            <Card>
+            <Card className="border-2 border-transparent bg-gradient-to-r from-truvay-yellow/10 via-truvay-magenta/10 to-truvay-purple/10">
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
                   <span>
@@ -529,9 +533,7 @@ export default function BookingPage() {
                     <strong>${formData.budget}</strong> per person
                   </span>
                   <span>•</span>
-                  <span>
-                    <strong>Total: ${totalAmount}</strong>
-                  </span>
+                  <span className="font-bold text-truvay-magenta">Total: ${totalAmount}</span>
                 </div>
               </CardContent>
             </Card>
@@ -539,14 +541,18 @@ export default function BookingPage() {
 
           {/* Add edit button */}
           <div className="max-w-2xl mx-auto mb-8 text-center">
-            <Button variant="outline" onClick={() => setShowPaymentForm(false)} className="text-sm">
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentForm(false)}
+              className="text-sm hover:bg-truvay-gradient-subtle"
+            >
               ← Edit Details
             </Button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit} className="space-y-6 bg-background rounded-lg border p-6 shadow-sm">
+              <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg border p-6 shadow-sm">
                 <div>
                   <h2 className="text-xl font-semibold mb-4">Payment Details</h2>
                   <div className="space-y-4">
@@ -559,6 +565,7 @@ export default function BookingPage() {
                         value={formData.cardNumber}
                         onChange={handleChange}
                         maxLength={19}
+                        className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                       />
                       {errors.cardNumber && <p className="text-sm text-red-500">{errors.cardNumber}</p>}
                     </div>
@@ -571,6 +578,7 @@ export default function BookingPage() {
                         placeholder="John Smith"
                         value={formData.cardName}
                         onChange={handleChange}
+                        className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                       />
                       {errors.cardName && <p className="text-sm text-red-500">{errors.cardName}</p>}
                     </div>
@@ -585,6 +593,7 @@ export default function BookingPage() {
                           value={formData.expiry}
                           onChange={handleChange}
                           maxLength={5}
+                          className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                         />
                         {errors.expiry && <p className="text-sm text-red-500">{errors.expiry}</p>}
                       </div>
@@ -599,6 +608,7 @@ export default function BookingPage() {
                           onChange={handleChange}
                           maxLength={4}
                           type="password"
+                          className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                         />
                         {errors.cvc && <p className="text-sm text-red-500">{errors.cvc}</p>}
                       </div>
@@ -607,7 +617,12 @@ export default function BookingPage() {
                 </div>
 
                 <div className="pt-4 lg:hidden">
-                  <Button type="submit" className="w-full" size="lg" disabled={isProcessing || !isPaymentValid()}>
+                  <Button
+                    type="submit"
+                    className="w-full truvay-button text-white font-semibold"
+                    size="lg"
+                    disabled={isProcessing || !isPaymentValid()}
+                  >
                     {isProcessing ? "Processing..." : `Complete Booking - $${totalAmount}`}
                   </Button>
                 </div>
@@ -617,7 +632,7 @@ export default function BookingPage() {
             {/* Order Summary for Payment */}
             <div className="hidden lg:block">
               <div className="sticky top-6">
-                <Card>
+                <Card className="border-2 border-transparent bg-gradient-to-br from-truvay-yellow/5 via-truvay-magenta/5 to-truvay-purple/5">
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
                     <div className="space-y-4">
@@ -641,20 +656,49 @@ export default function BookingPage() {
                         <span className="text-muted-foreground">Cost per Person:</span>
                         <span>${formData.budget || 0}</span>
                       </div>
+                      {Object.keys(formData.foodDrinkOptions).length > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Food & Drinks:</span>
+                            <span className="text-xs">
+                              {Object.keys(formData.foodDrinkOptions).includes("none")
+                                ? "None selected"
+                                : "Reservations only*"}
+                            </span>
+                          </div>
+                          {!Object.keys(formData.foodDrinkOptions).includes("none") && (
+                            <div className="text-xs text-muted-foreground pl-0">
+                              {Object.keys(formData.foodDrinkOptions)
+                                .filter((key) => key !== "none")
+                                .map((key) => {
+                                  const option = foodDrinkOptions.find((opt) => opt.id === key)
+                                  return option ? option.label : key
+                                })
+                                .join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <Separator />
                       <div className="flex justify-between font-medium">
                         <span>Total:</span>
-                        <span>${totalAmount}</span>
+                        <span className="text-truvay-magenta font-bold">${totalAmount}</span>
                       </div>
                       <Button
                         type="submit"
-                        className="w-full mt-4"
+                        className="w-full mt-4 truvay-button text-white font-semibold"
                         size="lg"
                         onClick={handleSubmit}
                         disabled={isProcessing || !isPaymentValid()}
                       >
                         {isProcessing ? "Processing..." : `Complete Booking`}
                       </Button>
+                      {Object.keys(formData.foodDrinkOptions).length > 0 &&
+                        !Object.keys(formData.foodDrinkOptions).includes("none") && (
+                          <p className="text-xs text-center text-muted-foreground mt-2">
+                            *Food & drink costs are separate and paid directly at venues
+                          </p>
+                        )}
                       <p className="text-xs text-center text-muted-foreground mt-2">
                         Secure payment powered by Stripe. Your experience will be confirmed within 24 hours.
                       </p>
@@ -670,19 +714,20 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted">
-      <header className="bg-background border-b">
-        <div className="container flex h-16 items-center justify-center">
-          <div className="flex items-center gap-2">
-            <Mountain className="h-5 w-5" />
-            <span className="text-lg font-bold">Truvay</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <header className="bg-white border-b shadow-sm">
+        <div className="container flex h-20 items-center justify-center">
+          <div className="flex items-center gap-3">
+            <Image src="/truvay-logo-black.png" alt="Truvay" width={120} height={40} className="h-8 w-auto" />
           </div>
         </div>
       </header>
 
       <div className="container py-8 md:py-12">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Book Your Seattle Night Out</h1>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-truvay-yellow via-truvay-magenta to-truvay-purple bg-clip-text text-transparent">
+            Book Your Seattle Night Out
+          </h1>
           <p className="mt-2 text-muted-foreground">
             Fill out this form and our Seattle concierges will create a bespoke itinerary for your perfect night out.
           </p>
@@ -690,10 +735,10 @@ export default function BookingPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <form onSubmit={handleSurveyComplete} className="space-y-8 bg-background rounded-lg border p-6 shadow-sm">
+            <form onSubmit={handleSurveyComplete} className="space-y-8 bg-white rounded-lg border p-6 shadow-sm">
               {/* Event Details */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Event Details</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Event Details</h2>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -702,7 +747,7 @@ export default function BookingPage() {
                       value={formData.groupSize?.toString() || ""}
                       onValueChange={(value) => handleSelectChange("groupSize", Number.parseInt(value))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
                         <SelectValue placeholder="Select number of people" />
                       </SelectTrigger>
                       <SelectContent>
@@ -723,7 +768,7 @@ export default function BookingPage() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "w-full justify-start text-left font-normal focus:ring-truvay-magenta focus:border-truvay-magenta",
                             !formData.date && "text-muted-foreground",
                           )}
                         >
@@ -747,12 +792,12 @@ export default function BookingPage() {
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-4">
                   <div className="space-y-2">
-                    <Label>What time do you want your Seattle Night Out to start? *</Label>
+                    <Label>What time do you want your Night Out to start? *</Label>
                     <Select
                       value={formData.startTime}
                       onValueChange={(value) => handleSelectChange("startTime", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
                         <SelectValue placeholder="Select start time" />
                       </SelectTrigger>
                       <SelectContent>
@@ -773,7 +818,7 @@ export default function BookingPage() {
                       onValueChange={(value) => handleSelectChange("endTime", value)}
                       disabled={!formData.startTime}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
                         <SelectValue placeholder={formData.startTime ? "Select end time" : "Select start time first"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -799,7 +844,7 @@ export default function BookingPage() {
                     value={formData.preferredArea}
                     onValueChange={(value) => handleSelectChange("preferredArea", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
                       <SelectValue placeholder="Select preferred area" />
                     </SelectTrigger>
                     <SelectContent>
@@ -818,7 +863,7 @@ export default function BookingPage() {
 
               {/* Budget */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Budget *</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Budget *</h2>
                 <div className="space-y-2">
                   <Label>What is your per person budget for your Seattle evening (excluding meals)?</Label>
                   <p className="text-sm text-muted-foreground mb-4">
@@ -833,13 +878,15 @@ export default function BookingPage() {
                       <div
                         key={option.value}
                         className={cn(
-                          "flex flex-col items-center space-y-2 border rounded-md p-4 cursor-pointer transition-colors relative",
-                          formData.budget === option.value ? "border-primary bg-primary/5" : "hover:border-primary/50",
+                          "flex flex-col items-center space-y-2 border rounded-md p-4 cursor-pointer transition-all duration-200 relative",
+                          formData.budget === option.value
+                            ? "border-truvay-magenta bg-gradient-to-br from-truvay-yellow/10 via-truvay-magenta/10 to-truvay-purple/10 shadow-md"
+                            : "hover:border-truvay-magenta/50 hover:bg-truvay-gradient-subtle",
                         )}
                         onClick={() => handleSelectChange("budget", option.value)}
                       >
                         {option.popular && (
-                          <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                          <div className="absolute top-2 left-2 truvay-gradient text-white text-xs px-2 py-1 rounded font-medium">
                             Most popular
                           </div>
                         )}
@@ -856,7 +903,7 @@ export default function BookingPage() {
 
               {/* Contact Information */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Contact Information</h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name *</Label>
@@ -866,6 +913,7 @@ export default function BookingPage() {
                       value={formData.firstName}
                       onChange={handleChange}
                       placeholder="Enter your first name"
+                      className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                     />
                     {errors.firstName && <p className="text-sm text-red-500">{errors.firstName}</p>}
                   </div>
@@ -877,6 +925,7 @@ export default function BookingPage() {
                       value={formData.lastName}
                       onChange={handleChange}
                       placeholder="Enter your last name"
+                      className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                     />
                     {errors.lastName && <p className="text-sm text-red-500">{errors.lastName}</p>}
                   </div>
@@ -887,7 +936,10 @@ export default function BookingPage() {
                   <div className="flex gap-2">
                     <Popover open={showCountryDropdown} onOpenChange={setShowCountryDropdown}>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-[180px] justify-start bg-transparent">
+                        <Button
+                          variant="outline"
+                          className="w-[180px] justify-start bg-transparent hover:bg-truvay-gradient-subtle"
+                        >
                           {selectedCountry.flag} {selectedCountry.name} ({selectedCountry.dialCode})
                         </Button>
                       </PopoverTrigger>
@@ -907,7 +959,7 @@ export default function BookingPage() {
                           {filteredCountries.map((country) => (
                             <button
                               key={country.code}
-                              className="w-full px-3 py-2 text-left hover:bg-accent flex items-center gap-2"
+                              className="w-full px-3 py-2 text-left hover:bg-truvay-gradient-subtle flex items-center gap-2"
                               onClick={() => handleCountrySelect(country.code)}
                             >
                               {country.flag} {country.name} ({country.dialCode})
@@ -923,7 +975,7 @@ export default function BookingPage() {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       placeholder="Enter phone number"
-                      className="flex-1"
+                      className="flex-1 focus:ring-truvay-magenta focus:border-truvay-magenta"
                     />
                   </div>
                   {errors.phoneNumber && <p className="text-sm text-red-500">{errors.phoneNumber}</p>}
@@ -934,7 +986,7 @@ export default function BookingPage() {
 
               {/* Group Details */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Group Details</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Group Details</h2>
                 <div className="space-y-2">
                   <Label htmlFor="groupComposition">Can you describe your group's composition?</Label>
                   <Textarea
@@ -943,7 +995,7 @@ export default function BookingPage() {
                     value={formData.groupComposition}
                     onChange={handleChange}
                     placeholder="For example, you might include details such as whether you're attending as a couple, a group of friends, a family, or any specific identity or demographic characteristics (e.g. all women, all men, LGBTQ+, etc.) that you feel are relevant."
-                    className="min-h-[100px]"
+                    className="min-h-[100px] focus:ring-truvay-magenta focus:border-truvay-magenta"
                   />
                 </div>
 
@@ -953,7 +1005,7 @@ export default function BookingPage() {
                     value={formData.specialOccasion}
                     onValueChange={(value) => handleSelectChange("specialOccasion", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
                       <SelectValue placeholder="Select occasion" />
                     </SelectTrigger>
                     <SelectContent>
@@ -972,6 +1024,7 @@ export default function BookingPage() {
                         value={formData.specialOccasionOther}
                         onChange={handleChange}
                         placeholder="Please specify the occasion"
+                        className="focus:ring-truvay-magenta focus:border-truvay-magenta"
                       />
                     </div>
                   )}
@@ -982,7 +1035,7 @@ export default function BookingPage() {
 
               {/* Food & Drink Add-ons */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Food & Drink Add-ons *</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Food & Drink Add-ons *</h2>
                 <div className="space-y-2">
                   <Label>Should we include any meals, snacks, or drinks for your Seattle evening?</Label>
                   <p className="text-sm text-muted-foreground mb-4">
@@ -1002,6 +1055,7 @@ export default function BookingPage() {
                                 : formData.foodDrinkOptions[option.id]?.selected || false
                             }
                             onCheckedChange={(checked) => handleFoodDrinkChange(option.id, checked as boolean)}
+                            className="data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta"
                           />
                           <Label htmlFor={option.id}>{option.label}</Label>
                         </div>
@@ -1018,7 +1072,7 @@ export default function BookingPage() {
                               placeholder="Enter amount in $"
                               value={formData.foodDrinkOptions[option.id]?.amount || ""}
                               onChange={(e) => handleFoodDrinkAmountChange(option.id, e.target.value)}
-                              className="w-32 mt-1"
+                              className="w-32 mt-1 focus:ring-truvay-magenta focus:border-truvay-magenta"
                             />
                             {errors[`foodDrink_${option.id}`] && (
                               <p className="text-sm text-red-500">{errors[`foodDrink_${option.id}`]}</p>
@@ -1036,7 +1090,7 @@ export default function BookingPage() {
 
               {/* Interests & Preferences */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Interests & Preferences *</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Interests & Preferences *</h2>
                 <div className="space-y-2">
                   <Label>What are you interested in experiencing during your Seattle Night Out?</Label>
                   <div className="grid grid-cols-1 gap-2">
@@ -1045,12 +1099,28 @@ export default function BookingPage() {
                         key={option.value}
                         type="button"
                         variant={formData.interests.includes(option.value) ? "default" : "outline"}
-                        className="justify-start h-auto p-3 text-left min-h-[3rem]"
+                        className={cn(
+                          "justify-start h-auto p-3 text-left min-h-[3rem] transition-all duration-200",
+                          formData.interests.includes(option.value)
+                            ? "truvay-button text-white"
+                            : "hover:bg-truvay-gradient-subtle hover:border-truvay-magenta/50",
+                        )}
                         onClick={() => handleInterestChange(option.value, !formData.interests.includes(option.value))}
                       >
                         {option.label}
                       </Button>
                     ))}
+                    {formData.interests.includes("other") && (
+                      <div className="mt-2">
+                        <Input
+                          name="interestsOther"
+                          value={formData.interestsOther || ""}
+                          onChange={handleChange}
+                          placeholder="Please specify your other interests"
+                          className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                        />
+                      </div>
+                    )}
                   </div>
                   {errors.interests && <p className="text-sm text-red-500">{errors.interests}</p>}
                 </div>
@@ -1063,7 +1133,7 @@ export default function BookingPage() {
                     value={formData.exclusions}
                     onChange={handleChange}
                     placeholder="We'd love to give you a fresh experience. What are some things you already do regularly when you go out that we can skip?"
-                    className="min-h-[80px]"
+                    className="min-h-[80px] focus:ring-truvay-magenta focus:border-truvay-magenta"
                   />
                 </div>
               </div>
@@ -1072,13 +1142,14 @@ export default function BookingPage() {
 
               {/* Communication Preferences */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">Communication Preferences</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Communication Preferences</h2>
                 <div className="space-y-4">
                   <div className="flex flex-row items-start space-x-3 space-y-0">
                     <Checkbox
                       id="essentialComms"
                       checked={formData.essentialComms}
                       onCheckedChange={(checked) => handleCheckboxChange("essentialComms", checked as boolean)}
+                      className="data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta"
                     />
                     <div className="space-y-1 leading-none">
                       <Label htmlFor="essentialComms" className="font-medium">
@@ -1097,6 +1168,7 @@ export default function BookingPage() {
                       id="marketingComms"
                       checked={formData.marketingComms}
                       onCheckedChange={(checked) => handleCheckboxChange("marketingComms", checked as boolean)}
+                      className="data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta"
                     />
                     <div className="space-y-1 leading-none">
                       <Label htmlFor="marketingComms" className="font-medium">
@@ -1111,7 +1183,12 @@ export default function BookingPage() {
               </div>
 
               <div className="pt-4 lg:hidden">
-                <Button type="submit" className="w-full" size="lg" disabled={!isFormValid()}>
+                <Button
+                  type="submit"
+                  className="w-full truvay-button text-white font-semibold"
+                  size="lg"
+                  disabled={!isFormValid()}
+                >
                   Add Payment Details
                 </Button>
               </div>
@@ -1121,7 +1198,7 @@ export default function BookingPage() {
           {/* Order Summary */}
           <div className="hidden lg:block">
             <div className="sticky top-6">
-              <Card>
+              <Card className="border-2 border-transparent bg-gradient-to-br from-truvay-yellow/5 via-truvay-magenta/5 to-truvay-purple/5">
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
                   <div className="space-y-4">
@@ -1145,20 +1222,49 @@ export default function BookingPage() {
                       <span className="text-muted-foreground">Cost per Person:</span>
                       <span>${formData.budget || 0}</span>
                     </div>
+                    {Object.keys(formData.foodDrinkOptions).length > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Food & Drinks:</span>
+                          <span className="text-xs">
+                            {Object.keys(formData.foodDrinkOptions).includes("none")
+                              ? "None selected"
+                              : "Reservations only*"}
+                          </span>
+                        </div>
+                        {!Object.keys(formData.foodDrinkOptions).includes("none") && (
+                          <div className="text-xs text-muted-foreground pl-0">
+                            {Object.keys(formData.foodDrinkOptions)
+                              .filter((key) => key !== "none")
+                              .map((key) => {
+                                const option = foodDrinkOptions.find((opt) => opt.id === key)
+                                return option ? option.label : key
+                              })
+                              .join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <Separator />
                     <div className="flex justify-between font-medium">
                       <span>Total:</span>
-                      <span>${totalAmount}</span>
+                      <span className="text-truvay-magenta font-bold">${totalAmount}</span>
                     </div>
                     <Button
                       type="button"
-                      className="w-full mt-4"
+                      className="w-full mt-4 truvay-button text-white font-semibold"
                       size="lg"
                       onClick={handleSurveyComplete}
                       disabled={!isFormValid()}
                     >
                       Add Payment Details
                     </Button>
+                    {Object.keys(formData.foodDrinkOptions).length > 0 &&
+                      !Object.keys(formData.foodDrinkOptions).includes("none") && (
+                        <p className="text-xs text-center text-muted-foreground mt-2">
+                          *Food & drink costs are separate and paid directly at venues
+                        </p>
+                      )}
                     <p className="text-xs text-center text-muted-foreground mt-2">
                       Secure payment powered by Stripe. Your experience will be confirmed within 24 hours.
                     </p>
