@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge" // Import Badge component
 
 interface BudgetFormProps {
   data: {
@@ -92,12 +93,15 @@ export function BudgetForm({ data, onNext, onBack }: BudgetFormProps) {
                 </Label>
                 <p className="text-sm text-center text-muted-foreground">Basic package</p>
               </div>
-              <div className="flex flex-col items-center space-y-2 border rounded-md p-4">
+              <div className="relative flex flex-col items-center space-y-2 border rounded-md p-4">
                 <RadioGroupItem value="150" id="budget-150" className="sr-only" />
                 <Label htmlFor="budget-150" className="text-xl font-bold">
                   $150
                 </Label>
                 <p className="text-sm text-center text-muted-foreground">Standard package</p>
+                <Badge className="absolute -top-2 right-2 bg-truvay-magenta text-white px-2 py-1 rounded-full text-xs font-semibold">
+                  Most Popular
+                </Badge>
               </div>
               <div className="flex flex-col items-center space-y-2 border rounded-md p-4">
                 <RadioGroupItem value="200" id="budget-200" className="sr-only" />

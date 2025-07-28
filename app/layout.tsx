@@ -1,11 +1,16 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Truvay - Book Your Night Out",
-  description: "Experience Seattle nightlife with Truvay - your personalized night out booking service",
-  generator: "v0.dev",
+  title: "Truvay Checkout",
+  description: "Book your bespoke night out with Truvay",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -14,8 +19,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className="bg-gradient-to-br from-gray-50 to-gray-100 font-future-lt">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

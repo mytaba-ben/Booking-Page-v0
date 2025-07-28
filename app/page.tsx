@@ -15,6 +15,7 @@ import { format } from "date-fns"
 import { CalendarIcon, CheckCircle, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function BookingPage() {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -32,12 +33,14 @@ export default function BookingPage() {
     preferredArea: "",
     groupSize: null,
     date: null,
+    dateInput: "", // For manual date input
     startTime: "",
     endTime: "",
-    budget: "", // No pre-selection
+    budget: "",
     foodDrinkOptions: {},
     interests: [],
     essentialComms: false,
+    dietaryRestrictions: "", // New field for dietary restrictions
 
     // Optional fields
     groupComposition: "",
@@ -55,6 +58,8 @@ export default function BookingPage() {
     interestsOther: "",
   })
   const [errors, setErrors] = useState({})
+  const [showValidationErrors, setShowValidationErrors] = useState(false)
+  const { toast } = useToast()
 
   // Country codes with search functionality
   const countries = [
@@ -84,19 +89,15 @@ export default function BookingPage() {
 
   const selectedCountry = countries.find((c) => c.code === formData.countryCode) || countries[0]
 
-  // Seattle area options
+  // Seattle area options - reduced and sorted
   const seattleAreas = [
     { value: "no-preference", label: "No preference - surprise me!" },
-    { value: "downtown", label: "Downtown Seattle" },
-    { value: "capitol-hill", label: "Capitol Hill" },
-    { value: "queen-anne", label: "Queen Anne" },
-    { value: "fremont", label: "Fremont" },
     { value: "ballard", label: "Ballard" },
-    { value: "university-district", label: "University District" },
-    { value: "south-lake-union", label: "South Lake Union" },
     { value: "belltown", label: "Belltown" },
+    { value: "capitol-hill", label: "Capitol Hill" },
+    { value: "downtown", label: "Downtown" },
+    { value: "fremont", label: "Fremont" },
     { value: "international-district", label: "International District" },
-    { value: "west-seattle", label: "West Seattle" },
     { value: "sodo", label: "SODO" },
   ]
 
@@ -126,13 +127,13 @@ export default function BookingPage() {
     { value: "other", label: "Other" },
   ]
 
-  // Food and drink options
+  // Food and drink options with minimum amounts
   const foodDrinkOptions = [
-    { id: "happyHour", label: "Happy Hour (apps/drinks)" },
-    { id: "dinner", label: "Dinner" },
-    { id: "drinks", label: "Drinks" },
-    { id: "dessert", label: "Dessert" },
-    { id: "none", label: "No Thanks" },
+    { id: "happyHour", label: "Happy Hour (apps/drinks)", minAmount: 10 },
+    { id: "dinner", label: "Dinner", minAmount: 20 },
+    { id: "drinks", label: "Drinks", minAmount: 10 },
+    { id: "dessert", label: "Dessert", minAmount: 10 },
+    { id: "none", label: "No Thanks", minAmount: 0 },
   ]
 
   // Special occasion options
@@ -219,6 +220,32 @@ export default function BookingPage() {
       return
     }
 
+    // Handle manual date input
+    if (name === "dateInput") {
+      setFormData({
+        ...formData,
+        [name]: value,
+      })
+
+      // Try to parse the date
+      const parsedDate = new Date(value)
+      if (!isNaN(parsedDate.getTime()) && parsedDate >= minDate) {
+        setFormData((prev) => ({
+          ...prev,
+          date: parsedDate,
+          dateInput: value,
+        }))
+        clearError("date")
+      } else {
+        // If parsing fails or date is invalid, clear the date state
+        setFormData((prev) => ({
+          ...prev,
+          date: null,
+        }))
+      }
+      return
+    }
+
     setFormData({
       ...formData,
       [name]: value,
@@ -252,6 +279,18 @@ export default function BookingPage() {
   const handleInterestChange = (value, checked) => {
     let newInterests
     if (checked) {
+      if (formData.interests.length >= 4) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          interests: "You can select a maximum of 4 interests.",
+        }))
+        toast({
+          title: "Interest Limit Reached",
+          description: "You can select a maximum of 4 interests.",
+          variant: "destructive",
+        })
+        return // Prevent adding more than 4 interests
+      }
       newInterests = [...formData.interests, value]
     } else {
       newInterests = formData.interests.filter((item) => item !== value)
@@ -276,10 +315,12 @@ export default function BookingPage() {
       setFormData({
         ...formData,
         foodDrinkOptions: { none: { selected: true } },
+        dietaryRestrictions: "", // Clear dietary restrictions
       })
     } else if (checked) {
       // Remove "none" if other options are selected
       delete newOptions.none
+      const option = foodDrinkOptions.find((opt) => opt.id === id)
       newOptions[id] = { selected: true, amount: "" }
       setFormData({
         ...formData,
@@ -302,19 +343,26 @@ export default function BookingPage() {
   const handleFoodDrinkAmountChange = (id, amount) => {
     const newOptions = { ...formData.foodDrinkOptions }
     if (newOptions[id]) {
-      // Validate that it's a whole number
+      const option = foodDrinkOptions.find((opt) => opt.id === id)
+      const minAmount = option?.minAmount || 0
       const numValue = Number(amount)
-      if (amount === "" || (Number.isInteger(numValue) && numValue > 0)) {
-        newOptions[id].amount = amount
-        // Clear any existing error for this field
-        clearError(`foodDrink_${id}`)
-      } else {
-        // Set error for invalid input
+
+      // Always update the amount
+      newOptions[id].amount = amount
+
+      // Show error if value is less than minimum and not empty
+      if (amount !== "" && (!Number.isInteger(numValue) || numValue < minAmount)) {
         setErrors({
           ...errors,
-          [`foodDrink_${id}`]: "Whole number required",
+          [`foodDrink_${id}`]: `Minimum $${minAmount} required`,
         })
+      } else {
+        // Clear error if valid
+        const newErrors = { ...errors }
+        delete newErrors[`foodDrink_${id}`]
+        setErrors(newErrors)
       }
+
       setFormData({
         ...formData,
         foodDrinkOptions: newOptions,
@@ -326,6 +374,7 @@ export default function BookingPage() {
     setFormData({
       ...formData,
       date,
+      dateInput: date ? format(date, "MM/dd/yyyy") : "",
     })
     setShowCalendar(false) // Close calendar after selection
     clearError("date")
@@ -340,9 +389,16 @@ export default function BookingPage() {
     setCountrySearch("")
   }
 
+  // Check if food/drink options require dietary restrictions
+  const requiresDietaryRestrictions = () => {
+    return Object.keys(formData.foodDrinkOptions).some(
+      (key) => key !== "none" && formData.foodDrinkOptions[key]?.selected,
+    )
+  }
+
   // Check if all required survey fields are filled
   const isFormValid = () => {
-    return (
+    const basicFieldsValid =
       formData.firstName &&
       formData.lastName &&
       formData.phoneNumber &&
@@ -355,7 +411,13 @@ export default function BookingPage() {
       Object.keys(formData.foodDrinkOptions).length > 0 &&
       formData.interests.length > 0 &&
       formData.essentialComms
-    )
+
+    // If food/drink options are selected (not "none"), dietary restrictions are required
+    if (requiresDietaryRestrictions() && !formData.dietaryRestrictions) {
+      return false
+    }
+
+    return basicFieldsValid
   }
 
   // Check if payment fields are filled
@@ -373,6 +435,7 @@ export default function BookingPage() {
 
   const handleSurveyComplete = (e) => {
     e.preventDefault() // Prevent form submission
+    setShowValidationErrors(true) // Show validation errors
 
     // Validate survey fields first
     const newErrors = {}
@@ -384,18 +447,21 @@ export default function BookingPage() {
     if (!formData.preferredArea) newErrors.preferredArea = "Preferred area is required"
     if (!formData.groupSize || formData.groupSize < 2) newErrors.groupSize = "Minimum 2 people required"
     if (!formData.date) newErrors.date = "Date is required"
+    if (formData.date && formData.date < minDate) {
+      newErrors.date = "Please select a date at least 4 days from today"
+    }
     if (!formData.startTime) newErrors.startTime = "Start time is required"
     if (!formData.endTime) newErrors.endTime = "End time is required"
     if (!formData.budget) newErrors.budget = "Budget selection is required"
 
-    // Check if date is at least 4 days in the future
-    if (formData.date && formData.date < minDate) {
-      newErrors.date = "Please select a date at least 4 days from today"
-    }
-
     // Food and drink validation (must select at least one including "none")
     if (Object.keys(formData.foodDrinkOptions).length === 0) {
       newErrors.foodDrink = "Please select at least one food/drink option (including 'No Thanks' if applicable)"
+    }
+
+    // Dietary restrictions validation
+    if (requiresDietaryRestrictions() && !formData.dietaryRestrictions) {
+      newErrors.dietaryRestrictions = "Please specify dietary restrictions or select 'None'"
     }
 
     // Interests validation
@@ -406,8 +472,9 @@ export default function BookingPage() {
       newErrors.essentialComms = "You must agree to essential communications"
     }
 
+    setErrors(newErrors)
+
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
       // Scroll to the first error
       const firstError = document.querySelector(".text-red-500")
       if (firstError) {
@@ -461,11 +528,13 @@ export default function BookingPage() {
 
   // Calculate total amount
   const totalAmount = formData.budget && formData.groupSize ? Number.parseInt(formData.budget) * formData.groupSize : 0
+  const isSummaryCalculable =
+    formData.groupSize && formData.date && formData.startTime && formData.endTime && formData.budget
 
   if (isComplete) {
     return (
-      <div className="container max-w-md py-20">
-        <Card>
+      <div className="container max-w-md py-20 mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
+        <Card className="w-full">
           <CardContent className="pt-6">
             <div className="text-center">
               <div className="flex justify-center mb-4">
@@ -510,35 +579,6 @@ export default function BookingPage() {
             <p className="mt-2 text-muted-foreground">Enter your payment details to confirm your Seattle Night Out.</p>
           </div>
 
-          {/* Add booking summary */}
-          <div className="max-w-2xl mx-auto mb-6">
-            <Card className="border-2 border-transparent bg-gradient-to-r from-truvay-yellow/10 via-truvay-magenta/10 to-truvay-purple/10">
-              <CardContent className="p-4">
-                <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-                  <span>
-                    <strong>{formData.groupSize}</strong> guests
-                  </span>
-                  <span>•</span>
-                  <span>
-                    <strong>{formData.date ? format(formData.date, "MMM d, yyyy") : "Date TBD"}</strong>
-                  </span>
-                  <span>•</span>
-                  <span>
-                    <strong>
-                      {formData.startTime} - {formData.endTime}
-                    </strong>
-                  </span>
-                  <span>•</span>
-                  <span>
-                    <strong>${formData.budget}</strong> per person
-                  </span>
-                  <span>•</span>
-                  <span className="font-bold text-truvay-magenta">Total: ${totalAmount}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Add edit button */}
           <div className="max-w-2xl mx-auto mb-8 text-center">
             <Button
@@ -565,7 +605,10 @@ export default function BookingPage() {
                         value={formData.cardNumber}
                         onChange={handleChange}
                         maxLength={19}
-                        className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                        className={cn(
+                          "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                          errors.cardNumber && "border-red-500",
+                        )}
                       />
                       {errors.cardNumber && <p className="text-sm text-red-500">{errors.cardNumber}</p>}
                     </div>
@@ -578,7 +621,10 @@ export default function BookingPage() {
                         placeholder="John Smith"
                         value={formData.cardName}
                         onChange={handleChange}
-                        className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                        className={cn(
+                          "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                          errors.cardName && "border-red-500",
+                        )}
                       />
                       {errors.cardName && <p className="text-sm text-red-500">{errors.cardName}</p>}
                     </div>
@@ -593,7 +639,10 @@ export default function BookingPage() {
                           value={formData.expiry}
                           onChange={handleChange}
                           maxLength={5}
-                          className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                          className={cn(
+                            "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                            errors.expiry && "border-red-500",
+                          )}
                         />
                         {errors.expiry && <p className="text-sm text-red-500">{errors.expiry}</p>}
                       </div>
@@ -608,7 +657,10 @@ export default function BookingPage() {
                           onChange={handleChange}
                           maxLength={4}
                           type="password"
-                          className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                          className={cn(
+                            "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                            errors.cvc && "border-red-500",
+                          )}
                         />
                         {errors.cvc && <p className="text-sm text-red-500">{errors.cvc}</p>}
                       </div>
@@ -638,11 +690,11 @@ export default function BookingPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Number of Guests:</span>
-                        <span>{formData.groupSize || 0}</span>
+                        <span>{formData.groupSize || "Not selected"}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Date:</span>
-                        <span>{formData.date ? format(formData.date, "MMM d, yyyy") : "Not selected"}</span>
+                        <span>{formData.date ? format(formData.date, "MM/dd/yyyy") : "Not selected"}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Time:</span>
@@ -654,7 +706,7 @@ export default function BookingPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Cost per Person:</span>
-                        <span>${formData.budget || 0}</span>
+                        <span>{formData.budget ? `$${formData.budget}` : "Not selected"}</span>
                       </div>
                       {Object.keys(formData.foodDrinkOptions).length > 0 && (
                         <div className="space-y-1">
@@ -682,7 +734,9 @@ export default function BookingPage() {
                       <Separator />
                       <div className="flex justify-between font-medium">
                         <span>Total:</span>
-                        <span className="text-truvay-magenta font-bold">${totalAmount}</span>
+                        <span className="text-truvay-magenta font-bold">
+                          {isSummaryCalculable ? `$${totalAmount}` : "N/A"}
+                        </span>
                       </div>
                       <Button
                         type="submit"
@@ -726,7 +780,7 @@ export default function BookingPage() {
       <div className="container py-8 md:py-12">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-truvay-yellow via-truvay-magenta to-truvay-purple bg-clip-text text-transparent">
-            Book Your Seattle Night Out
+            Book Your Truvay Night Out
           </h1>
           <p className="mt-2 text-muted-foreground">
             Fill out this form and our Seattle concierges will create a bespoke itinerary for your perfect night out.
@@ -747,10 +801,15 @@ export default function BookingPage() {
                       value={formData.groupSize?.toString() || ""}
                       onValueChange={(value) => handleSelectChange("groupSize", Number.parseInt(value))}
                     >
-                      <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
+                      <SelectTrigger
+                        className={cn(
+                          "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                          (errors.groupSize || (showValidationErrors && !formData.groupSize)) && "border-red-500",
+                        )}
+                      >
                         <SelectValue placeholder="Select number of people" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="item-aligned">
                         {[2, 3, 4, 5, 6, 7, 8].map((size) => (
                           <SelectItem key={size} value={size.toString()}>
                             {size} people
@@ -758,24 +817,39 @@ export default function BookingPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.groupSize && <p className="text-sm text-red-500">{errors.groupSize}</p>}
+                    {(errors.groupSize || (showValidationErrors && !formData.groupSize)) && (
+                      <p className="text-sm text-red-500">{errors.groupSize || "Group size is required"}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label>What date would you like for your Seattle Night Out? *</Label>
                     <Popover open={showCalendar} onOpenChange={setShowCalendar}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          name="dateInput"
+                          value={formData.dateInput}
+                          onChange={handleChange}
+                          placeholder="MM/DD/YYYY"
                           className={cn(
-                            "w-full justify-start text-left font-normal focus:ring-truvay-magenta focus:border-truvay-magenta",
-                            !formData.date && "text-muted-foreground",
+                            "w-full pr-10", // Right padding for the icon
+                            "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                            (errors.date || (showValidationErrors && !formData.date)) && "border-red-500",
                           )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.date ? format(formData.date, "PPP") : "Select a date"}
-                        </Button>
-                      </PopoverTrigger>
+                        />
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button" // This is the critical fix for the submission bug
+                            variant="ghost"
+                            className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 p-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowCalendar(true)}
+                          >
+                            <span className="sr-only">Open calendar</span>
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </div>
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
@@ -786,7 +860,9 @@ export default function BookingPage() {
                         />
                       </PopoverContent>
                     </Popover>
-                    {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
+                    {(errors.date || (showValidationErrors && !formData.date)) && (
+                      <p className="text-sm text-red-500">{errors.date || "Date is required"}</p>
+                    )}
                   </div>
                 </div>
 
@@ -797,10 +873,15 @@ export default function BookingPage() {
                       value={formData.startTime}
                       onValueChange={(value) => handleSelectChange("startTime", value)}
                     >
-                      <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
+                      <SelectTrigger
+                        className={cn(
+                          "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                          (errors.startTime || (showValidationErrors && !formData.startTime)) && "border-red-500",
+                        )}
+                      >
                         <SelectValue placeholder="Select start time" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="item-aligned">
                         {startTimeOptions.map((time) => (
                           <SelectItem key={time} value={time}>
                             {time}
@@ -808,7 +889,9 @@ export default function BookingPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.startTime && <p className="text-sm text-red-500">{errors.startTime}</p>}
+                    {(errors.startTime || (showValidationErrors && !formData.startTime)) && (
+                      <p className="text-sm text-red-500">{errors.startTime || "Start time is required"}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -818,10 +901,15 @@ export default function BookingPage() {
                       onValueChange={(value) => handleSelectChange("endTime", value)}
                       disabled={!formData.startTime}
                     >
-                      <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
+                      <SelectTrigger
+                        className={cn(
+                          "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                          (errors.endTime || (showValidationErrors && !formData.endTime)) && "border-red-500",
+                        )}
+                      >
                         <SelectValue placeholder={formData.startTime ? "Select end time" : "Select start time first"} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="item-aligned">
                         {getEndTimeOptions(formData.startTime).map((time) => (
                           <SelectItem key={time} value={time}>
                             {time}
@@ -829,7 +917,9 @@ export default function BookingPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.endTime && <p className="text-sm text-red-500">{errors.endTime}</p>}
+                    {(errors.endTime || (showValidationErrors && !formData.endTime)) && (
+                      <p className="text-sm text-red-500">{errors.endTime || "End time is required"}</p>
+                    )}
                   </div>
                 </div>
 
@@ -844,10 +934,15 @@ export default function BookingPage() {
                     value={formData.preferredArea}
                     onValueChange={(value) => handleSelectChange("preferredArea", value)}
                   >
-                    <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
+                    <SelectTrigger
+                      className={cn(
+                        "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                        (errors.preferredArea || (showValidationErrors && !formData.preferredArea)) && "border-red-500",
+                      )}
+                    >
                       <SelectValue placeholder="Select preferred area" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="item-aligned">
                       {seattleAreas.map((area) => (
                         <SelectItem key={area.value} value={area.value}>
                           {area.label}
@@ -855,7 +950,9 @@ export default function BookingPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.preferredArea && <p className="text-sm text-red-500">{errors.preferredArea}</p>}
+                  {(errors.preferredArea || (showValidationErrors && !formData.preferredArea)) && (
+                    <p className="text-sm text-red-500">{errors.preferredArea || "Preferred area is required"}</p>
+                  )}
                 </div>
               </div>
 
@@ -868,12 +965,14 @@ export default function BookingPage() {
                   <Label>What is your per person budget for your Seattle evening (excluding meals)?</Label>
                   <p className="text-sm text-muted-foreground mb-4">
                     This is how much we charge upfront per person so our Seattle concierges can book everything for you.
+                    Each tier includes different types of activities and venues - from local favorites to premium
+                    experiences.
                   </p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { value: "100", label: "$100", description: "Basic package" },
-                      { value: "150", label: "$150", description: "Standard package", popular: true },
-                      { value: "200", label: "$200", description: "Premium package" },
+                      { value: "100", label: "$100", description: "Explorer", popular: false },
+                      { value: "150", label: "$150", description: "Adventurer", popular: true },
+                      { value: "200", label: "$200", description: "Connoisseur", popular: false },
                     ].map((option) => (
                       <div
                         key={option.value}
@@ -882,20 +981,23 @@ export default function BookingPage() {
                           formData.budget === option.value
                             ? "border-truvay-magenta bg-gradient-to-br from-truvay-yellow/10 via-truvay-magenta/10 to-truvay-purple/10 shadow-md"
                             : "hover:border-truvay-magenta/50 hover:bg-truvay-gradient-subtle",
+                          (errors.budget || (showValidationErrors && !formData.budget)) && "border-red-500",
                         )}
                         onClick={() => handleSelectChange("budget", option.value)}
                       >
                         {option.popular && (
-                          <div className="absolute top-2 left-2 truvay-gradient text-white text-xs px-2 py-1 rounded font-medium">
+                          <div className="absolute -top-2 left-2 truvay-gradient text-white text-xs px-2 py-1 rounded font-medium">
                             Most popular
                           </div>
                         )}
                         <span className="text-xl font-bold mt-2">{option.label}</span>
-                        <p className="text-sm text-center text-muted-foreground">{option.description}</p>
+                        <p className="text-sm text-center text-muted-foreground font-medium">{option.description}</p>
                       </div>
                     ))}
                   </div>
-                  {errors.budget && <p className="text-sm text-red-500">{errors.budget}</p>}
+                  {(errors.budget || (showValidationErrors && !formData.budget)) && (
+                    <p className="text-sm text-red-500">{errors.budget || "Budget selection is required"}</p>
+                  )}
                 </div>
               </div>
 
@@ -913,9 +1015,14 @@ export default function BookingPage() {
                       value={formData.firstName}
                       onChange={handleChange}
                       placeholder="Enter your first name"
-                      className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                      className={cn(
+                        "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                        (errors.firstName || (showValidationErrors && !formData.firstName)) && "border-red-500",
+                      )}
                     />
-                    {errors.firstName && <p className="text-sm text-red-500">{errors.firstName}</p>}
+                    {(errors.firstName || (showValidationErrors && !formData.firstName)) && (
+                      <p className="text-sm text-red-500">{errors.firstName || "First name is required"}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name *</Label>
@@ -925,9 +1032,14 @@ export default function BookingPage() {
                       value={formData.lastName}
                       onChange={handleChange}
                       placeholder="Enter your last name"
-                      className="focus:ring-truvay-magenta focus:border-truvay-magenta"
+                      className={cn(
+                        "focus:ring-truvay-magenta focus:border-truvay-magenta",
+                        (errors.lastName || (showValidationErrors && !formData.lastName)) && "border-red-500",
+                      )}
                     />
-                    {errors.lastName && <p className="text-sm text-red-500">{errors.lastName}</p>}
+                    {(errors.lastName || (showValidationErrors && !formData.lastName)) && (
+                      <p className="text-sm text-red-500">{errors.lastName || "Last name is required"}</p>
+                    )}
                   </div>
                 </div>
 
@@ -943,7 +1055,7 @@ export default function BookingPage() {
                           {selectedCountry.flag} {selectedCountry.name} ({selectedCountry.dialCode})
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0">
+                      <PopoverContent className="w-[300px] p-0" sideOffset={4} align="start">
                         <div className="p-2">
                           <div className="relative">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -975,10 +1087,15 @@ export default function BookingPage() {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       placeholder="Enter phone number"
-                      className="flex-1 focus:ring-truvay-magenta focus:border-truvay-magenta"
+                      className={cn(
+                        "flex-1 focus:ring-truvay-magenta focus:border-truvay-magenta",
+                        (errors.phoneNumber || (showValidationErrors && !formData.phoneNumber)) && "border-red-500",
+                      )}
                     />
                   </div>
-                  {errors.phoneNumber && <p className="text-sm text-red-500">{errors.phoneNumber}</p>}
+                  {(errors.phoneNumber || (showValidationErrors && !formData.phoneNumber)) && (
+                    <p className="text-sm text-red-500">{errors.phoneNumber || "Phone number is required"}</p>
+                  )}
                 </div>
               </div>
 
@@ -1008,7 +1125,7 @@ export default function BookingPage() {
                     <SelectTrigger className="focus:ring-truvay-magenta focus:border-truvay-magenta">
                       <SelectValue placeholder="Select occasion" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="item-aligned">
                       {occasionOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -1036,14 +1153,17 @@ export default function BookingPage() {
               {/* Food & Drink Add-ons */}
               <div>
                 <h2 className="text-xl font-semibold mb-4 text-gray-900">Food & Drink Add-ons *</h2>
-                <div className="space-y-2">
-                  <Label>Should we include any meals, snacks, or drinks for your Seattle evening?</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Feel free to choose as many options as you'd like, and we'll handle the reservations! Just a
-                    heads-up: Be sure to select a food option if you want us to plan any meal stops. Please note the
-                    cost of food and drinks are not included in the overall price of our service.
-                  </p>
-                  <div className="space-y-4">
+                <p className="text-sm text-muted-foreground mb-4 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                  <strong>Please note:</strong> Food and drink costs are separate from your booking fee and are paid
+                  directly at venues.
+                </p>
+
+                <div>
+                  <Label className="mb-4">
+                    Should we include any meals, snacks, or drinks for your Truvay Night Out?{" "}
+                  </Label>
+
+                  <div className="space-y-4 mt-4">
                     {foodDrinkOptions.map((option) => (
                       <div key={option.id} className="space-y-2">
                         <div className="flex items-center space-x-2">
@@ -1055,24 +1175,33 @@ export default function BookingPage() {
                                 : formData.foodDrinkOptions[option.id]?.selected || false
                             }
                             onCheckedChange={(checked) => handleFoodDrinkChange(option.id, checked as boolean)}
-                            className="data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta"
+                            className={cn(
+                              "data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta",
+                              (errors.foodDrink ||
+                                (showValidationErrors && Object.keys(formData.foodDrinkOptions).length === 0)) &&
+                                "border-red-500",
+                            )}
                           />
                           <Label htmlFor={option.id}>{option.label}</Label>
                         </div>
                         {option.id !== "none" && formData.foodDrinkOptions[option.id]?.selected && (
                           <div className="ml-6">
                             <Label htmlFor={`${option.id}-amount`} className="text-sm">
-                              How much are you willing to spend per person on {option.label.toLowerCase()}?
+                              How much are you willing to spend per person on {option.label.toLowerCase()}? (Min: $
+                              {option.minAmount})
                             </Label>
                             <Input
                               id={`${option.id}-amount`}
                               type="number"
-                              min="1"
+                              min={option.minAmount}
                               step="1"
-                              placeholder="Enter amount in $"
+                              placeholder={`Enter amount in $ (min $${option.minAmount})`}
                               value={formData.foodDrinkOptions[option.id]?.amount || ""}
                               onChange={(e) => handleFoodDrinkAmountChange(option.id, e.target.value)}
-                              className="w-32 mt-1 focus:ring-truvay-magenta focus:border-truvay-magenta"
+                              className={cn(
+                                "w-32 mt-1 focus:ring-truvay-magenta focus:border-truvay-magenta",
+                                errors[`foodDrink_${option.id}`] && "border-red-500",
+                              )}
                             />
                             {errors[`foodDrink_${option.id}`] && (
                               <p className="text-sm text-red-500">{errors[`foodDrink_${option.id}`]}</p>
@@ -1082,8 +1211,65 @@ export default function BookingPage() {
                       </div>
                     ))}
                   </div>
-                  {errors.foodDrink && <p className="text-sm text-red-500">{errors.foodDrink}</p>}
+                  {(errors.foodDrink ||
+                    (showValidationErrors && Object.keys(formData.foodDrinkOptions).length === 0)) && (
+                    <p className="text-sm text-red-500">{errors.foodDrink || "Please select at least one option"}</p>
+                  )}
                 </div>
+
+                {/* Dietary Restrictions */}
+                {requiresDietaryRestrictions() && (
+                  <div className="mt-6 space-y-2">
+                    <Label>Do you have any dietary restrictions? *</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="dietaryNone"
+                          checked={formData.dietaryRestrictions === "None"}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData({
+                                ...formData,
+                                dietaryRestrictions: "None",
+                              })
+                              clearError("dietaryRestrictions")
+                            } else {
+                              setFormData({
+                                ...formData,
+                                dietaryRestrictions: "",
+                              })
+                            }
+                          }}
+                          className="data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta"
+                        />
+                        <Label htmlFor="dietaryNone">None</Label>
+                      </div>
+                      {formData.dietaryRestrictions !== "None" && (
+                        <Textarea
+                          id="dietaryRestrictions"
+                          name="dietaryRestrictions"
+                          value={formData.dietaryRestrictions === "None" ? "" : formData.dietaryRestrictions}
+                          onChange={handleChange}
+                          placeholder="Please describe any dietary restrictions, allergies, or preferences."
+                          className={cn(
+                            "min-h-[80px] focus:ring-truvay-magenta focus:border-truvay-magenta",
+                            (errors.dietaryRestrictions ||
+                              (showValidationErrors &&
+                                requiresDietaryRestrictions() &&
+                                !formData.dietaryRestrictions)) &&
+                              "border-red-500",
+                          )}
+                        />
+                      )}
+                    </div>
+                    {(errors.dietaryRestrictions ||
+                      (showValidationErrors && requiresDietaryRestrictions() && !formData.dietaryRestrictions)) && (
+                      <p className="text-sm text-red-500">
+                        {errors.dietaryRestrictions || "Please specify dietary restrictions or select 'None'"}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -1092,7 +1278,14 @@ export default function BookingPage() {
               <div>
                 <h2 className="text-xl font-semibold mb-4 text-gray-900">Interests & Preferences *</h2>
                 <div className="space-y-2">
-                  <Label>What are you interested in experiencing during your Seattle Night Out?</Label>
+                  <Label>
+                    What are you interested in experiencing during your Seattle Night Out?{" "}
+                    <span className="text-sm text-muted-foreground">(Select up to 4 that apply)</span>
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-4 italic">
+                    These selections help inspire your itinerary - your actual experience will be a curated surprise
+                    based on your preferences!
+                  </p>
                   <div className="grid grid-cols-1 gap-2">
                     {interestOptions.map((option) => (
                       <Button
@@ -1104,6 +1297,8 @@ export default function BookingPage() {
                           formData.interests.includes(option.value)
                             ? "truvay-button text-white"
                             : "hover:bg-truvay-gradient-subtle hover:border-truvay-magenta/50",
+                          (errors.interests || (showValidationErrors && formData.interests.length === 0)) &&
+                            "border-red-500",
                         )}
                         onClick={() => handleInterestChange(option.value, !formData.interests.includes(option.value))}
                       >
@@ -1122,7 +1317,9 @@ export default function BookingPage() {
                       </div>
                     )}
                   </div>
-                  {errors.interests && <p className="text-sm text-red-500">{errors.interests}</p>}
+                  {(errors.interests || (showValidationErrors && formData.interests.length === 0)) && (
+                    <p className="text-sm text-red-500">{errors.interests || "Please select at least one interest"}</p>
+                  )}
                 </div>
 
                 <div className="mt-4 space-y-2">
@@ -1149,7 +1346,11 @@ export default function BookingPage() {
                       id="essentialComms"
                       checked={formData.essentialComms}
                       onCheckedChange={(checked) => handleCheckboxChange("essentialComms", checked as boolean)}
-                      className="data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta"
+                      className={cn(
+                        "data-[state=checked]:bg-truvay-magenta data-[state=checked]:border-truvay-magenta",
+                        (errors.essentialComms || (showValidationErrors && !formData.essentialComms)) &&
+                          "border-red-500",
+                      )}
                     />
                     <div className="space-y-1 leading-none">
                       <Label htmlFor="essentialComms" className="font-medium">
@@ -1161,7 +1362,11 @@ export default function BookingPage() {
                       </p>
                     </div>
                   </div>
-                  {errors.essentialComms && <p className="text-sm text-red-500">{errors.essentialComms}</p>}
+                  {(errors.essentialComms || (showValidationErrors && !formData.essentialComms)) && (
+                    <p className="text-sm text-red-500">
+                      {errors.essentialComms || "You must agree to essential communications"}
+                    </p>
+                  )}
 
                   <div className="flex flex-row items-start space-x-3 space-y-0">
                     <Checkbox
@@ -1195,7 +1400,7 @@ export default function BookingPage() {
             </form>
           </div>
 
-          {/* Order Summary */}
+          {/* Order Summary Sidebar */}
           <div className="hidden lg:block">
             <div className="sticky top-6">
               <Card className="border-2 border-transparent bg-gradient-to-br from-truvay-yellow/5 via-truvay-magenta/5 to-truvay-purple/5">
@@ -1204,11 +1409,11 @@ export default function BookingPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Number of Guests:</span>
-                      <span>{formData.groupSize || 0}</span>
+                      <span>{formData.groupSize || "Not selected"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Date:</span>
-                      <span>{formData.date ? format(formData.date, "MMM d, yyyy") : "Not selected"}</span>
+                      <span>{formData.date ? format(formData.date, "MM/dd/yyyy") : "Not selected"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Time:</span>
@@ -1220,7 +1425,7 @@ export default function BookingPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Cost per Person:</span>
-                      <span>${formData.budget || 0}</span>
+                      <span>{formData.budget ? `$${formData.budget}` : "Not selected"}</span>
                     </div>
                     {Object.keys(formData.foodDrinkOptions).length > 0 && (
                       <div className="space-y-1">
@@ -1248,7 +1453,9 @@ export default function BookingPage() {
                     <Separator />
                     <div className="flex justify-between font-medium">
                       <span>Total:</span>
-                      <span className="text-truvay-magenta font-bold">${totalAmount}</span>
+                      <span className="text-truvay-magenta font-bold">
+                        {isSummaryCalculable ? `$${totalAmount}` : "N/A"}
+                      </span>
                     </div>
                     <Button
                       type="button"

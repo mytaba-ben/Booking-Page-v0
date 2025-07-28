@@ -182,6 +182,11 @@ export default function CheckoutPage() {
     return formData.foodDrinks.join(", ")
   }
 
+  // Calculate total amount
+  const totalAmount = formData.budget && formData.groupSize ? Number.parseInt(formData.budget) * formData.groupSize : 0
+  const isSummaryCalculable =
+    formData.groupSize && formData.date && formData.startTime && formData.endTime && formData.budget
+
   if (showPayment) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -193,9 +198,13 @@ export default function CheckoutPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {" "}
+            {/* Changed to lg:grid-cols-2 */}
             {/* Payment Form */}
             <div className="lg:col-span-2">
+              {" "}
+              {/* Changed to lg:col-span-2 to take full width */}
               <PaymentForm
                 formData={formData}
                 updateFormData={updateFormData}
@@ -203,95 +212,7 @@ export default function CheckoutPage() {
                 onEditDetails={handleEditDetails}
               />
             </div>
-
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-8 border-2 border-gray-100 shadow-lg">
-                <CardHeader className="bg-truvay-gradient text-white">
-                  <CardTitle className="text-xl font-semibold">Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="h-4 w-4 text-truvay-magenta" />
-                      <div>
-                        <div className="font-medium">{formatDate(formData.date)}</div>
-                        <div className="text-sm text-gray-600">
-                          {formatTime(formData.startTime)} - {formatTime(formData.endTime)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Users className="h-4 w-4 text-truvay-magenta" />
-                      <div>
-                        <div className="font-medium">
-                          {formData.groupSize} {formData.groupSize === 1 ? "Person" : "People"}
-                        </div>
-                        <div className="text-sm text-gray-600">{formData.occasion}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-truvay-magenta" />
-                      <div>
-                        <div className="font-medium">{formData.neighborhood}</div>
-                        <div className="text-sm text-gray-600">Seattle</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-4 w-4 text-truvay-magenta" />
-                      <div>
-                        <div className="font-medium">{formData.budget}</div>
-                        <div className="text-sm text-gray-600">Per person budget</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Heart className="h-4 w-4 text-truvay-magenta mt-1" />
-                      <div className="flex-1">
-                        <div className="font-medium">Interests</div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {formData.interests.map((interest, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs bg-truvay-gradient-subtle">
-                              {interest}
-                            </Badge>
-                          ))}
-                          {formData.otherInterest && (
-                            <Badge variant="secondary" className="text-xs bg-truvay-gradient-subtle">
-                              {formData.otherInterest}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Utensils className="h-4 w-4 text-truvay-magenta mt-1" />
-                      <div className="flex-1">
-                        <div className="font-medium">Food & Drinks</div>
-                        <div className="text-sm text-gray-600">Reservations only*</div>
-                        {formData.foodDrinks.length > 0 && !formData.foodDrinks.includes("none") && (
-                          <div className="text-xs text-gray-500 mt-1">{getFoodDrinksDisplay()}</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="text-center">
-                    <Button className="w-full truvay-button text-white font-semibold py-3" disabled={!isPaymentValid()}>
-                      Complete Booking
-                    </Button>
-                    <p className="text-xs text-gray-500 mt-2">
-                      *Food and drink costs are separate and paid directly to venues
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Order Summary - Removed from here */}
           </div>
         </div>
       </div>
@@ -351,7 +272,9 @@ export default function CheckoutPage() {
                     <Users className="h-4 w-4 text-truvay-magenta" />
                     <div>
                       <div className="font-medium">
-                        {formData.groupSize} {formData.groupSize === 1 ? "Person" : "People"}
+                        {formData.groupSize
+                          ? `${formData.groupSize} ${formData.groupSize === 1 ? "Person" : "People"}`
+                          : "Not selected"}
                       </div>
                       {formData.occasion && <div className="text-sm text-gray-600">{formData.occasion}</div>}
                     </div>
@@ -367,15 +290,13 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {formData.budget && (
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-4 w-4 text-truvay-magenta" />
-                      <div>
-                        <div className="font-medium">{formData.budget}</div>
-                        <div className="text-sm text-gray-600">Per person budget</div>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-4 w-4 text-truvay-magenta" />
+                    <div>
+                      <div className="font-medium">{formData.budget ? `$${formData.budget}` : "Not Selected"}</div>
+                      <div className="text-sm text-gray-600">Per person budget</div>
                     </div>
-                  )}
+                  </div>
 
                   {formData.interests.length > 0 && (
                     <div className="flex items-start gap-3">
@@ -411,6 +332,13 @@ export default function CheckoutPage() {
                 </div>
 
                 <Separator />
+
+                <div className="flex justify-between font-medium">
+                  <span>Total:</span>
+                  <span className="text-truvay-magenta font-bold">
+                    {isSummaryCalculable ? `$${totalAmount}` : "N/A"}
+                  </span>
+                </div>
 
                 <div className="text-center">
                   <Button
