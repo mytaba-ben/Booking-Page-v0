@@ -459,6 +459,13 @@ export default function BookingPage() {
       newErrors.foodDrink = "Please select at least one food/drink option (including 'No Thanks' if applicable)"
     }
 
+    // Add validation for food/drink amounts
+    Object.keys(formData.foodDrinkOptions).forEach((key) => {
+      if (key !== "none" && formData.foodDrinkOptions[key].selected && !formData.foodDrinkOptions[key].amount) {
+        newErrors[`foodDrink_${key}`] = "Amount is required"
+      }
+    })
+
     // Dietary restrictions validation
     if (requiresDietaryRestrictions() && !formData.dietaryRestrictions) {
       newErrors.dietaryRestrictions = "Please specify dietary restrictions or select 'None'"
@@ -798,6 +805,7 @@ export default function BookingPage() {
                   <div className="space-y-2">
                     <Label htmlFor="groupSize">How many total people (including you) will be attending? *</Label>
                     <Select
+                      modal={false}
                       value={formData.groupSize?.toString() || ""}
                       onValueChange={(value) => handleSelectChange("groupSize", Number.parseInt(value))}
                     >
@@ -824,7 +832,7 @@ export default function BookingPage() {
 
                   <div className="space-y-2">
                     <Label>What date would you like for your Seattle Night Out? *</Label>
-                    <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                    <Popover modal={false} open={showCalendar} onOpenChange={setShowCalendar}>
                       <div className="relative">
                         <Input
                           type="text"
@@ -870,6 +878,7 @@ export default function BookingPage() {
                   <div className="space-y-2">
                     <Label>What time do you want your Night Out to start? *</Label>
                     <Select
+                      modal={false}
                       value={formData.startTime}
                       onValueChange={(value) => handleSelectChange("startTime", value)}
                     >
@@ -897,6 +906,7 @@ export default function BookingPage() {
                   <div className="space-y-2">
                     <Label>What is the latest end time for your night out? *</Label>
                     <Select
+                      modal={false}
                       value={formData.endTime}
                       onValueChange={(value) => handleSelectChange("endTime", value)}
                       disabled={!formData.startTime}
@@ -931,6 +941,7 @@ export default function BookingPage() {
                     to event start.
                   </p>
                   <Select
+                    modal={false}
                     value={formData.preferredArea}
                     onValueChange={(value) => handleSelectChange("preferredArea", value)}
                   >
@@ -1046,7 +1057,7 @@ export default function BookingPage() {
                 <div className="mt-4 space-y-2">
                   <Label htmlFor="phoneNumber">Phone Number *</Label>
                   <div className="flex gap-2">
-                    <Popover open={showCountryDropdown} onOpenChange={setShowCountryDropdown}>
+                    <Popover modal={false} open={showCountryDropdown} onOpenChange={setShowCountryDropdown}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -1119,6 +1130,7 @@ export default function BookingPage() {
                 <div className="mt-4 space-y-2">
                   <Label>Are you celebrating a special occasion?</Label>
                   <Select
+                    modal={false}
                     value={formData.specialOccasion}
                     onValueChange={(value) => handleSelectChange("specialOccasion", value)}
                   >
@@ -1195,11 +1207,11 @@ export default function BookingPage() {
                               type="number"
                               min={option.minAmount}
                               step="1"
-                              placeholder={`Enter amount in $ (min $${option.minAmount})`}
+                              placeholder="Amount ($)"
                               value={formData.foodDrinkOptions[option.id]?.amount || ""}
                               onChange={(e) => handleFoodDrinkAmountChange(option.id, e.target.value)}
                               className={cn(
-                                "w-32 mt-1 focus:ring-truvay-magenta focus:border-truvay-magenta",
+                                "w-[6.4rem] mt-1 focus:ring-truvay-magenta focus:border-truvay-magenta no-spinners",
                                 errors[`foodDrink_${option.id}`] && "border-red-500",
                               )}
                             />
@@ -1392,7 +1404,7 @@ export default function BookingPage() {
                   type="submit"
                   className="w-full truvay-button text-white font-semibold"
                   size="lg"
-                  disabled={!isFormValid()}
+                  // Removed disabled={!isFormValid()}
                 >
                   Add Payment Details
                 </Button>
@@ -1462,7 +1474,7 @@ export default function BookingPage() {
                       className="w-full mt-4 truvay-button text-white font-semibold"
                       size="lg"
                       onClick={handleSurveyComplete}
-                      disabled={!isFormValid()}
+                      // Removed disabled={!isFormValid()}
                     >
                       Add Payment Details
                     </Button>

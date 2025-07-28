@@ -110,7 +110,20 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Fix for Radix UI Select component breaking sticky positioning */
-body[data-scroll-locked] {
+/*  Comprehensive fix for Radix UI scroll-locking.
+    This targets both the older data-attribute method and the newer state,
+    ensuring the body remains scrollable when any popover or select is open.*/
+body:has([data-radix-popper-content-wrapper][data-state="open"]),
+body[data-scroll-locked="true"] {
   overflow: visible !important;
+}
+
+/* Hide spin buttons on number inputs */
+.no-spinners::-webkit-outer-spin-button,
+.no-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinners {
+  -moz-appearance: textfield;
 }
