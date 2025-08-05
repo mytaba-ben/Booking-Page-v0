@@ -16,6 +16,7 @@ import { CalendarIcon, CheckCircle, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useToast } from "@/components/ui/use-toast"
+import { Footer } from "@/components/footer"
 
 export default function BookingPage() {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -981,9 +982,9 @@ export default function BookingPage() {
                   </p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { value: "100", label: "$100", description: "Explorer", popular: false },
-                      { value: "150", label: "$150", description: "Adventurer", popular: true },
-                      { value: "200", label: "$200", description: "Connoisseur", popular: false },
+                      { value: "100", label: "$100", description: "Truvay Select", popular: false },
+                      { value: "150", label: "$150", description: "Truvay Classic", popular: true },
+                      { value: "250", label: "$250", description: "Truvay Luxe", popular: false },
                     ].map((option) => (
                       <div
                         key={option.value}
@@ -1494,6 +1495,7 @@ export default function BookingPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

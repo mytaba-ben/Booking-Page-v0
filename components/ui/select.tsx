@@ -6,7 +6,7 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = (props: any) => <SelectPrimitive.Root {...props} modal={false} />
+const Select = (props) => <SelectPrimitive.Root {...props} modal={false} />
 
 const SelectGroup = SelectPrimitive.Group
 
@@ -62,11 +62,9 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
-    container?: HTMLElement | null
-  }
->(({ className, children, position = "popper", container, ...props }, ref) => (
-  <SelectPrimitive.Portal container={container}>
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => (
+  <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -76,8 +74,6 @@ const SelectContent = React.forwardRef<
         className,
       )}
       position={position}
-      sideOffset={0}
-      avoidCollisions={false}
       {...props}
     >
       <SelectScrollUpButton />
